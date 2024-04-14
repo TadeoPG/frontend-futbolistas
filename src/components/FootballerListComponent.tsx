@@ -1,48 +1,63 @@
 import { useEffect, useState } from "react";
 import FootballerService from "../services/FootballerService";
+import { format } from "date-fns";
+import { Footballer } from "../interfaces/Footballer";
 
 export const FootballerListComponent = () => {
-  interface Footballer {
-    idFootballer: number;
-    names: string;
-    lastName: string;
-    birthdate: string;
-    characteristics: string;
-    position: {
-      description: string;
-    };
-  }
-
   const [footballers, setFootballers] = useState<Footballer[]>([]);
+  const [pageSize, setPageSize] = useState(1);
   const [selectedFootballer, setSelectedFootballer] =
     useState<Footballer | null>(null); // Estado para almacenar el futbolista seleccionado
 
   // Función para manejar el clic en el botón "Visualizar"
   const handleViewFootballer = (footballer: Footballer) => {
     FootballerService.getFootballerById(footballer.idFootballer)
-      .then((data) => {
+      .then((data: any) => {
         setSelectedFootballer(data);
       })
-      .catch((error) => {
+      .catch((error: any) => {
         console.error("There was a problem fetching the footballer:", error);
       });
   };
 
   useEffect(() => {
-    FootballerService.getAllFootballers()
-      .then((data) => {
-        setFootballers(data);
-        console.log(data);
-      })
-      .catch((error) => {
-        console.error("There was a problem fetching footballers:", error);
-      });
-  }, []);
+    const fetchPagedFootballers = async () => {
+      try {
+        const response = await FootballerService.getPagedFootballers(pageSize);
+        setFootballers(response.content);
+      } catch (error) {
+        console.error("Error fetching paged footballers:", error);
+      }
+    };
+
+    fetchPagedFootballers();
+  }, [pageSize]);
+
+  const handlePageSizeChange = (size: string) => {
+    setPageSize(parseInt(size));
+  };
 
   return (
     <div className="container">
       <h2 className="text-center">Lista de futbolistas</h2>
-      <table className="table table-bordered table-striped">
+      <div className="row mb-3">
+        <div className="col">
+          <select
+            className="form-select "
+            value={pageSize}
+            onChange={(e) => handlePageSizeChange(e.target.value)}
+          >
+            <option value={1}>1</option>
+            <option value={2}>2</option>
+            <option value={3}>3</option>
+            <option value={4}>4</option>
+          </select>
+        </div>
+        <div className="col-6">
+          <h6>Tamaño de la tabla</h6>
+        </div>
+      </div>
+      <table className="table table-hover table-striped">
         <thead>
           <th>ID</th>
           <th>Nombres</th>
@@ -58,13 +73,13 @@ export const FootballerListComponent = () => {
               <td>{footballer.idFootballer}</td>
               <td>{footballer.names}</td>
               <td>{footballer.lastName}</td>
-              <td>{footballer.birthdate}</td>
+              <td>{format(new Date(footballer.birthdate), "dd/MM/yyyy")}</td>
               <td>{footballer.characteristics}</td>
               <td>{footballer.position.description}</td>
               <td>
                 <button
                   type="button"
-                  className="btn btn-outline-success"
+                  className="btn btn-outline-info btn-sm"
                   data-bs-toggle="modal"
                   data-bs-target="#verticallyCenteredScrollable"
                   onClick={() => handleViewFootballer(footballer)}
@@ -124,13 +139,10 @@ export const FootballerListComponent = () => {
             <div className="modal-footer">
               <button
                 type="button"
-                className="btn btn-secondary"
+                className="btn btn-danger"
                 data-bs-dismiss="modal"
               >
-                Close
-              </button>
-              <button type="button" className="btn btn-primary">
-                Understood
+                Cerrar
               </button>
             </div>
           </div>
